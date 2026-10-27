@@ -1,0 +1,52 @@
+# Push a tag like v1.0.0.0 (annotated; its message becomes the changelog) to build the plugin, publish a GitHub
+# release with the zip, and add the version to manifest.json on main, which Jellyfin servers read.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency: release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          scripts/package.sh "$version"
+          git fetch -q origin "+refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          notes="$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME" | sed '/-----BEGIN PGP/,$d')"
+          printf '%s\n' "${notes:-Glowfin Trailers $version}" > artifacts/changelog.md
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "artifacts/glowfin-trailers_$VERSION.zip" \
+            --title "Glowfin Trailers $VERSION" --notes-file artifacts/changelog.md
+
+      - name: Add to manifest.json
+        run: |
+          git switch main
+          git pull -q --ff-only
+          scripts/update_manifest.py "$VERSION" "artifacts/glowfin-trailers_$VERSION.zip" \
+            "https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/glowfin-trailers_$VERSION.zip" \
+            artifacts/changelog.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -qam "manifest.json: Glowfin Trailers $VERSION"
+          git push -q origin main

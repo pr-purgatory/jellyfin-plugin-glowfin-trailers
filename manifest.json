@@ -1,0 +1,11 @@
+[
+  {
+    "guid": "c00de493-890e-4581-9220-eb1c881b2e14",
+    "name": "Glowfin Trailers",
+    "description": "Fetches movie and show trailers from their online trailer links, so Glowfin can play them in its own player.",
+    "overview": "Online trailers for the Glowfin Apple TV app",
+    "owner": "pr-purgatory",
+    "category": "General",
+    "versions": []
+  }
+]

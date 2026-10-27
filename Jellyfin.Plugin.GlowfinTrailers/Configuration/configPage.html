@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Glowfin Trailers</title>
+</head>
+<body>
+    <div id="GlowfinTrailersConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button">
+        <div data-role="content">
+            <div class="content-primary">
+                <h2>Glowfin Trailers</h2>
+                <p>Fetches a movie's or show's online trailer (its YouTube trailer link) onto this server the first time
+                   someone presses Play Trailer in Glowfin, then keeps a copy so it starts straight away next time.
+                   Trailer files you saved next to your media are always used first.</p>
+                <p>This uses yt-dlp, which downloads from YouTube. That goes against YouTube's terms of service; enable
+                   this plugin only if you accept that for your own server.</p>
+                <form id="GlowfinTrailersConfigForm">
+                    <div class="inputContainer">
+                        <input is="emby-input" type="text" id="YtDlpPath" label="yt-dlp path" />
+                        <div class="fieldDescription">Leave empty to let the plugin download and update yt-dlp itself.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <input is="emby-input" type="number" id="MaxHeight" min="360" max="2160" label="Highest quality (lines)" />
+                    </div>
+                    <div class="inputContainer">
+                        <input is="emby-input" type="number" id="CacheLimitMb" min="100" label="Trailer cache size (MB)" />
+                        <div class="fieldDescription">When full, the trailers played longest ago are deleted.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <textarea is="emby-textarea" id="ExtraArguments" label="Extra yt-dlp arguments (one per line)" rows="3"></textarea>
+                    </div>
+                    <button is="emby-button" type="submit" class="raised button-submit block"><span>Save</span></button>
+                </form>
+            </div>
+        </div>
+        <script type="text/javascript">
+            var pluginId = 'c00de493-890e-4581-9220-eb1c881b2e14';
+            var page = document.querySelector('#GlowfinTrailersConfigPage');
+            var fields = ['YtDlpPath', 'MaxHeight', 'CacheLimitMb', 'ExtraArguments'];
+            page.addEventListener('pageshow', function () {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    fields.forEach(function (name) { page.querySelector('#' + name).value = config[name]; });
+                    Dashboard.hideLoadingMsg();
+                });
+            });
+            page.querySelector('#GlowfinTrailersConfigForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    config.YtDlpPath = page.querySelector('#YtDlpPath').value;
+                    config.MaxHeight = parseInt(page.querySelector('#MaxHeight').value, 10) || 1080;
+                    config.CacheLimitMb = parseInt(page.querySelector('#CacheLimitMb').value, 10) || 5000;
+                    config.ExtraArguments = page.querySelector('#ExtraArguments').value;
+                    ApiClient.updatePluginConfiguration(pluginId, config).then(Dashboard.processPluginConfigurationUpdateResult);
+                });
+                return false;
+            });
+        </script>
+    </div>
+</body>
+</html>
